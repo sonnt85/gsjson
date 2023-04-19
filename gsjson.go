@@ -5,7 +5,6 @@ import (
 	// json "github.com/json-iterator/go"
 	"bytes"
 	"errors"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -24,6 +23,7 @@ type Ejson struct {
 	buffer []byte
 	sync.RWMutex
 	hookChange func()
+	hookLoad   func(buffer *[]byte)
 }
 
 func (gs *Ejson) _delete(path string) (err error) {
@@ -106,7 +106,7 @@ func (gs *Ejson) LoadOrStore(path string, value any) (actual gjson.Result) {
 	return
 }
 
-//get the value for a key.
+// get the value for a key.
 func (gs *Ejson) Get(path string) (result gjson.Result) {
 	gs.RLock()
 	result = gjson.GetBytes(gs.buffer, path)
@@ -128,11 +128,19 @@ func (gs *Ejson) WriteTo(path string, password []byte) (err error) {
 			return
 		}
 	}
-	ul, _ = lockedfile.LockTimeout(path, time.Second*30, time.Millisecond*100)
+	var fl *lockedfile.File
+
+	// gosystem.WriteToFileWithLockSFL(path, gs.buffer)
+	fl, ul, err = lockedfile.LockTimeout(path, time.Second*30, time.Millisecond*100)
+	if err != nil {
+		return
+	}
 	if len(password) == 0 {
-		err = ioutil.WriteFile(path, gs.buffer, 0766)
+		fl.Truncate(0)
+		_, err = fl.Write(gs.buffer)
+		// err = ioutil.WriteFile(path, gs.buffer, 0766)
 	} else {
-		err = endec.EncryptBytesToFile(path, gs.buffer, password)
+		err = endec.EncryptBytesToFile(fl, gs.buffer, password)
 	}
 	gosystem.Chmod(path, 0766)
 	if ul != nil {
@@ -147,9 +155,17 @@ func (gs *Ejson) LoadNewData(buffer []byte) (err error) {
 	} else {
 		gs.Lock()
 		gs.buffer = buffer
+		if gs.hookLoad != nil {
+			gs.hookLoad(&gs.buffer)
+		}
 		gs.Unlock()
 	}
 	return
+}
+func (gs *Ejson) SetHookLoad(f func(buffer *[]byte)) {
+	gs.Lock()
+	gs.hookLoad = f
+	gs.Unlock()
 }
 
 func touchFilePublic(path string) (err error) {
