@@ -49,6 +49,10 @@ func (f *Fjson) SendCmd(cmd int) {
 	f.cmd <- cmd
 }
 
+func (f *Fjson) WriteToFile() {
+	f.cmd <- 3
+}
+
 func (f *Fjson) GetJsonFilePath() string {
 	return f.path
 }
@@ -103,21 +107,20 @@ func (f *Fjson) _readFile(paths ...interface{}) (jsonbyte []byte, err error) {
 		jsonbyte, err = io.ReadAll(r) // ioutil.ReadFile(path)
 	} else {
 		jsonbyte, err = endec.DecryptFileToBytes(r, f.passphrase)
-		if f.ForceInit && err != nil {
-			// if err.Error() == "cipher: message authentication failed" {
-			// 	return err
-			// }{
+		// if f.ForceInit && err != nil {
+		// if err.Error() == "cipher: message authentication failed" {
+		// 	return err
+		// }{
+		// jsonbyte = []byte("{}")
+		// err = nil
+		// }
+	}
+	if !json.Valid(jsonbyte) {
+		if !f.ForceInit {
+			err = errors.Join(err, errors.New("efile is invalid"))
+		} else {
 			jsonbyte = []byte("{}")
 			err = nil
-		}
-	}
-	if err == nil {
-		if !json.Valid(jsonbyte) {
-			if !f.ForceInit {
-				err = errors.New("efile is invalid")
-			} else {
-				jsonbyte = []byte("{}")
-			}
 		}
 	}
 	return
@@ -185,7 +188,11 @@ func NewFjson(path string, passphrase []byte, removeIfFileInvalid bool, datas ..
 		jsonByte = []byte("{}")
 	}
 	f.Ejson, err = NewGsjson(jsonByte, func() {
-		f.w <- struct{}{}
+		select {
+		case f.w <- struct{}{}:
+		default:
+			// no default case intentionally
+		}
 	}, removeIfFileInvalid)
 	if err != nil {
 		return
@@ -193,7 +200,11 @@ func NewFjson(path string, passphrase []byte, removeIfFileInvalid bool, datas ..
 
 	go func() {
 		if watcher, err := fsnotify.NewWatcher(); err == nil {
-			defer watcher.Close()
+			slogrus.DebugS("Starting watcher ", f.path)
+			defer func() {
+				slogrus.DebugS("Exit watcher ", f.path)
+				watcher.Close()
+			}()
 			if err = watcher.Add(f.path); err != nil {
 				return
 			}
@@ -203,10 +214,18 @@ func NewFjson(path string, passphrase []byte, removeIfFileInvalid bool, datas ..
 					if !ok {
 						return
 					}
+					// slogrus.DebugS("Event watcher ", event.String())
 					if event.Op&fsnotify.Write == fsnotify.Write {
 						var jsonByte []byte
-						if jsonByte, err = f.ReadFile(); err == nil {
+						if jsonByte, err = f.ReadFile(); err == nil && string(jsonByte) != "{}" {
 							f.LoadNewData(jsonByte)
+							if err = f.LoadNewData(jsonByte); err != nil {
+								slogrus.DebugfS("Can not load new data %s", err.Error())
+								break //for update file error
+							}
+						} else {
+							slogrus.DebugS("Can not read file", f.path)
+							break
 						}
 						continue
 					} else if event.Op&fsnotify.Remove != fsnotify.Remove {
@@ -235,6 +254,7 @@ func NewFjson(path string, passphrase []byte, removeIfFileInvalid bool, datas ..
 					}
 					continue
 				}
+				// updateFile:
 				watcher.Remove(f.path)
 
 				for {
@@ -245,9 +265,9 @@ func NewFjson(path string, passphrase []byte, removeIfFileInvalid bool, datas ..
 						break
 					}
 				}
-				// slogrus.Info(f.String())
+
 				if err = f.WriteTo(f.path, f.passphrase); err != nil {
-					slogrus.TraceStack(err)
+					slogrus.DebugS(err)
 				}
 				if gosystem.FileIsExist(f.path + ".dec") {
 					f.WriteTo(f.path+".dec", []byte{})
@@ -259,6 +279,8 @@ func NewFjson(path string, passphrase []byte, removeIfFileInvalid bool, datas ..
 				watcher.Add(f.path)
 
 			}
+		} else {
+			slogrus.ErrorS("Can not watcher ", f.path, err)
 		}
 	}()
 	if len(datas) != 0 {
