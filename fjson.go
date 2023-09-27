@@ -3,7 +3,6 @@ package gsjson
 import (
 	"errors"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -90,7 +89,7 @@ func (f *Fjson) _readFile(paths ...interface{}) (jsonbyte []byte, err error) {
 			r = v
 			r.Seek(0, 0)
 		case string:
-			jsonbyte, err = ioutil.ReadFile(v)
+			jsonbyte, err = os.ReadFile(v)
 		default:
 			return jsonbyte, errors.New("param is of unknown type")
 		}
@@ -104,7 +103,7 @@ func (f *Fjson) _readFile(paths ...interface{}) (jsonbyte []byte, err error) {
 	}
 
 	if len(f.passphrase) == 0 {
-		jsonbyte, err = io.ReadAll(r) // ioutil.ReadFile(path)
+		jsonbyte, err = io.ReadAll(r) // os.ReadFile(path)
 	} else {
 		jsonbyte, err = endec.DecryptFileToBytes(r, f.passphrase)
 		// if f.ForceInit && err != nil {
@@ -244,7 +243,7 @@ func NewFjson(path string, passphrase []byte, removeIfFileInvalid bool, datas ..
 							f.WriteTo(f.path+".dec", []byte{})
 						} else if i == 2 {
 							if gosystem.FileIsExist(f.path + ".load") {
-								if jsonbyte, err := ioutil.ReadFile(f.path + ".load"); err == nil {
+								if jsonbyte, err := os.ReadFile(f.path + ".load"); err == nil {
 									f.LoadNewData(jsonbyte)
 								}
 							}
@@ -272,7 +271,7 @@ func NewFjson(path string, passphrase []byte, removeIfFileInvalid bool, datas ..
 				if gosystem.FileIsExist(f.path + ".dec") {
 					f.WriteTo(f.path+".dec", []byte{})
 				} else if gosystem.FileIsExist(f.path + ".load") {
-					if jsonbyte, err := ioutil.ReadFile(f.path + ".load"); err == nil {
+					if jsonbyte, err := os.ReadFile(f.path + ".load"); err == nil {
 						f.LoadNewData(jsonbyte)
 					}
 				}

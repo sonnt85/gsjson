@@ -138,7 +138,7 @@ func (gs *Ejson) WriteTo(path string, password []byte) (err error) {
 	fl.Truncate(0)
 	if len(password) == 0 {
 		_, err = fl.Write(gs.buffer)
-		// err = ioutil.WriteFile(path, gs.buffer, 0766)
+		// err = os.WriteFile(path, gs.buffer, 0766)
 	} else {
 		err = endec.EncryptBytesToFile(fl, gs.buffer, password)
 	}
