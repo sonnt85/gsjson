@@ -199,9 +199,9 @@ func NewFjson(path string, passphrase []byte, removeIfFileInvalid bool, datas ..
 
 	go func() {
 		if watcher, err := fsnotify.NewWatcher(); err == nil {
-			slogrus.DebugS("Starting watcher ", f.path)
+			// slogrus.DebugS("Starting watcher ", f.path)
 			defer func() {
-				slogrus.DebugS("Exit watcher ", f.path)
+				// slogrus.DebugS("Exit watcher ", f.path)
 				watcher.Close()
 			}()
 			if err = watcher.Add(f.path); err != nil {
