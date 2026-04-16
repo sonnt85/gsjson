@@ -92,6 +92,10 @@ val := gsjson.Getenv("key")
 - `Init()` — initialize global singleton EnvJson (env key `ENVJSON`, password `ENVJSON`)
 - `Setenv/Getenv/Unsetenv/Hasenv/GetOrCreateEnv(...)` — delegate to global singleton
 
+## Author
+
+**sonnt85** — [thanhson.rf@gmail.com](mailto:thanhson.rf@gmail.com)
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
