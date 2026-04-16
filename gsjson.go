@@ -1,4 +1,4 @@
-// Package pid provides structure and helper functions to create and remove
+// Package gsjson provides structure and helper functions for JSON handling
 package gsjson
 
 import (

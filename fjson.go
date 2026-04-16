@@ -116,7 +116,7 @@ func (f *Fjson) _readFile(paths ...interface{}) (jsonbyte []byte, err error) {
 	}
 	if !json.Valid(jsonbyte) {
 		if !f.ForceInit {
-			err = errors.Join(err, errors.New("efile is invalid"))
+			err = errors.Join(err, errors.New("file is invalid"))
 		} else {
 			jsonbyte = []byte("{}")
 			err = nil
@@ -151,7 +151,7 @@ func DecodeJsonFile(path string, passphrase []byte) (retstr string, err error) {
 			return string(jsonByte), nil
 		}
 	} else {
-		return "", errors.New("file is not exits")
+		return "", errors.New("file does not exist")
 	}
 }
 
@@ -217,7 +217,6 @@ func NewFjson(path string, passphrase []byte, removeIfFileInvalid bool, datas ..
 					if event.Op&fsnotify.Write == fsnotify.Write {
 						var jsonByte []byte
 						if jsonByte, err = f.ReadFile(); err == nil && string(jsonByte) != "{}" {
-							f.LoadNewData(jsonByte)
 							if err = f.LoadNewData(jsonByte); err != nil {
 								slogrus.DebugfS("Can not load new data %s", err.Error())
 								break //for update file error
