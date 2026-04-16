@@ -1,5 +1,7 @@
 # gsjson
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/sonnt85/gsjson.svg)](https://pkg.go.dev/github.com/sonnt85/gsjson)
+
 JSON utility library for Go — thread-safe in-memory JSON store, file-backed JSON with encryption, and encrypted environment variable JSON store.
 
 ## Installation
@@ -81,16 +83,31 @@ val := gsjson.Getenv("key")
 
 ### EnvJson (environment variable)
 - `NewEnvJson(envkey, pwd string) *EnvJson` — create an env-JSON handle
-- `(*EnvJson).Setenv/Getenv/Unsetenv/Hasenv(key string)` — manage individual keys
+- `GetGenvjson() *EnvJson` — return the global singleton EnvJson instance
+- `(*EnvJson).Setenv(key, value string) error` / `Getenv(key string) string` / `Unsetenv(key string) error` / `Hasenv(key string) bool` — manage individual keys
 - `(*EnvJson).GetOrCreateEnv(key, defaultValue string) string` — get or initialize key
-- `(*EnvJson).GetDecryptedEnvValue() string` — return decrypted JSON string
+- `(*EnvJson).GetDecryptedEnvValue() string` — return decrypted JSON string from the environment variable
+- `(*EnvJson).GetDecryptedEnvValueThenAddEnv(m map[string]string) string` — decrypt JSON and merge extra env entries
+- `(*EnvJson).GetEncryptedEnvValueThenAddEnv(m map[string]string) string` — encrypt JSON with extra entries merged
+- `(*EnvJson).SetEnvFromDecryptedValue(value string)` — store a plaintext JSON string back as an encrypted env variable
+- `(*EnvJson).GetEncryptedEnvValue() string` — return the raw (encrypted) env variable value
+- `(*EnvJson).GetEnvName() string` — return the environment variable key name
 - `(*EnvJson).Decode(encenv string) string` — decrypt an arbitrary encrypted string
+- `(*EnvJson).String() string` — return the decrypted JSON as a plain string
 
 ### Package-level helpers
 - `DecodeJsonFile(path string, passphrase []byte) (string, error)` — read and decrypt JSON file
 - `DecodeJsonFileNoErr(path string, passphrase []byte) string` — same, ignoring errors
 - `Init()` — initialize global singleton EnvJson (env key `ENVJSON`, password `ENVJSON`)
-- `Setenv/Getenv/Unsetenv/Hasenv/GetOrCreateEnv(...)` — delegate to global singleton
+- `GetGenvjson() *EnvJson` — return the global singleton instance
+- `Decode(encenv string) string` — decrypt using global singleton
+- `String() string` — JSON string via global singleton
+- `Getenv(key string) string` / `Setenv(key, value string) error` / `Unsetenv(key string) error` / `Hasenv(key string) bool` — delegate to global singleton
+- `GetDecryptedEnvValueThenAddEnv(m map[string]string) string` — package-level variant
+- `GetEncryptedEnvValueThenAddEnv(m map[string]string) string` — package-level variant
+- `SetEnvFromDecryptedValue(value string)` — package-level variant
+- `GetEncryptedEnvValue() string` — package-level variant
+- `GetEnvName() string` — package-level variant
 
 ## Author
 
